@@ -15,7 +15,7 @@ env:
   KERNEL_SOURCE : "https://github.com/NothingOSS/android_kernel_msm-5.4_nothing_sm7325.git"
   KERNEL_BRANCH : "sm7325/v/mr"
 
-  CLANG_SOURCE : "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/105aba85d97a53d364585ca755752dae054b49e8/clang-r584948b.tar.gz"
+  CLANG_SOURCE : "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/b669748458572622ed716407611633c5415da25c/clang-r416183d.tar.gz"
   CLANG_BRANCH : ""
 
   GCC_GNU : false
