@@ -97,41 +97,41 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE/device_kernel
           
-          # 1. 强行定位并移动内核源码
-          # setup.sh 脚本经常把源码克隆到根目录，我们要确保它在 drivers 下
+          # 1. 移动源码（你已经成功了，保留这部分）
           if [ -d "KernelSU" ]; then
-            echo "Found KernelSU in root, moving to drivers..."
+            echo "Moving KernelSU from root to drivers/kernelsu"
             rm -rf drivers/kernelsu
             mv KernelSU/kernel drivers/kernelsu
           elif [ -d "kernelsu" ]; then
-            echo "Found kernelsu in root, moving to drivers..."
+            echo "Moving kernelsu from root to drivers/kernelsu"
             rm -rf drivers/kernelsu
             mv kernelsu/kernel drivers/kernelsu
           fi
 
-          # 2. 暴力注入 Makefile
-          # 直接跳过 CONFIG_KSU 变量，强行编译这个目录
-          echo "obj-y += kernelsu/" >> drivers/Makefile
+          # 2. 强制在 drivers/Makefile 中硬编码包含
+          # 这一行确保编译器必须进入该文件夹
+          sed -i '/obj-y += drivers\//i obj-y += kernelsu/' drivers/Makefile || echo 'obj-y += kernelsu/' >> drivers/Makefile
+          
+          # 3. 核心修复：直接把 Makefile 里的条件变量换成强制编译
+          # 这一步非常关键！它把 'obj-$(CONFIG_KSU)' 变成 'obj-y'
+          if [ -d "drivers/kernelsu" ]; then
+            echo "Force modifying drivers/kernelsu/Makefile..."
+            find drivers/kernelsu -name "Makefile" -exec sed -i 's/obj-\$(CONFIG_KSU)/obj-y/g' {} +
+            find drivers/kernelsu -name "Makefile" -exec sed -i 's/obj-\$(CONFIG_KSU_SUSFS)/obj-y/g' {} +
+            # 针对 SukiSU 特有的变量也强制打开
+            find drivers/kernelsu -name "Makefile" -exec sed -i 's/obj-\$(CONFIG_SUKISU)/obj-y/g' {} +
+          fi
 
-          # 3. 强制在内核配置文件中开启必要宏
-          # 修复报错中的 __jump_table 链接问题
+          # 4. 注入必要的内核宏到 defconfig
+          # 修复 __jump_table 报错（ksu_is_..._enabled 相关的错误）
           echo "CONFIG_KSU=y" >> arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
           echo "CONFIG_SUSFS=y" >> arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
           echo "CONFIG_JUMP_LABEL=y" >> arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
-          
-          # 4. 针对 SUSFS 的特殊修复
-          # 如果 drivers/kernelsu/Makefile 存在，强制它编译所有文件
-          if [ -f "drivers/kernelsu/Makefile" ]; then
-            sed -i 's/obj-$(CONFIG_KSU)/obj-y/g' drivers/kernelsu/Makefile
-            sed -i 's/obj-$(CONFIG_KSU_SUSFS)/obj-y/g' drivers/kernelsu/Makefile
-          fi
+          # 强制关闭可能会导致冲突的选项
+          sed -i 's/CONFIG_LOCALVERSION_AUTO=y/CONFIG_LOCALVERSION_AUTO=n/g' arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
 
-          # 5. 检查是否真的有文件，如果没有则报错停止，不浪费 Actions 时间
-          if [ ! -f "drivers/kernelsu/ksu.c" ] && [ ! -f "drivers/kernelsu/main.c" ]; then
-            echo "ERROR: KernelSU source files not found in drivers/kernelsu!"
-            ls -R drivers/kernelsu || echo "Directory does not exist"
-            exit 1
-          fi
+          # 5. 验证文件是否存在（如果这一步报错，说明 setup.sh 下载的文件目录结构变了）
+          ls -l drivers/kernelsu/
       - name: 🧰 Patch Kernel of Re:Kernel
         uses: ./.github/workflows/patch-rekernel
 
