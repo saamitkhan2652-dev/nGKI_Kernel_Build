@@ -93,12 +93,14 @@ jobs:
       - name: 🔗 Patch for no-kprobe
         uses: ./.github/workflows/patch-no-kprobe
 
-            - name: 🪛 Extra Kernel Options
+      - name: 🪛 Extra Kernel Options
         run: |
           set -e
           cd $GITHUB_WORKSPACE/device_kernel
 
-          # 1. 移动 KernelSU 源码
+          # ============================================
+          # 1. 移动 KernelSU 源码到标准位置
+          # ============================================
           if [ -d "KernelSU" ]; then
             rm -rf drivers/kernelsu
             mv KernelSU/kernel drivers/kernelsu
@@ -109,17 +111,13 @@ jobs:
             rm -rf kernelsu
           fi
 
-          # 2. 注入配置到 defconfig
+          [ ! -d "drivers/kernelsu" ] && { echo "ERROR: drivers/kernelsu missing!"; exit 1; }
+
+          # ============================================
+          # 2. 注入 defconfig（同样保留，以防后续重新生成）
+          # ============================================
           DEFCONFIG="arch/arm64/configs/${{ env.DEFCONFIG_NAME }}"
-          
-          # 先清掉可能重复的配置
-          sed -i '/^CONFIG_KSU/d' "$DEFCONFIG"
-          sed -i '/^CONFIG_SUSFS/d' "$DEFCONFIG"
-          sed -i '/^CONFIG_JUMP_LABEL/d' "$DEFCONFIG"
-          sed -i '/^CONFIG_LOCALVERSION_AUTO/d' "$DEFCONFIG"
-          sed -i '/^CONFIG_SUKISU/d' "$DEFCONFIG"
-          
-          # 写入必需配置
+          sed -i '/^CONFIG_KSU/d; /^CONFIG_SUSFS/d; /^CONFIG_JUMP_LABEL/d; /^CONFIG_LOCALVERSION_AUTO/d; /^CONFIG_SUKISU/d' "$DEFCONFIG"
           cat >> "$DEFCONFIG" << 'EOF'
           CONFIG_KSU=y
           CONFIG_KSU_SUSFS=y
@@ -135,17 +133,64 @@ jobs:
           CONFIG_SUKISU=y
           EOF
 
-          # 3. 重新生成 .config 使配置真正生效
+          # ============================================
+          # 3. 重新生成 .config（关键）
+          # ============================================
           mkdir -p out
           make ARCH=arm64 O=out ${{ env.DEFCONFIG_NAME }}
           make ARCH=arm64 O=out olddefconfig
 
-          # 4. 确保 drivers/Makefile 包含 kernelsu 子目录
-          grep -q "kernelsu" drivers/Makefile || echo 'obj-y += kernelsu/' >> drivers/Makefile
+          # ============================================
+          # 4. 暴力强制 .config 中 KSU 相关选项无条件开启
+          # ============================================
+          echo "Forcing KSU configs in out/.config..."
 
-          # 5. 验证配置是否生效
-          echo "=== 最终 .config 中的 KSU 配置 ==="
-          grep -E "CONFIG_KSU|CONFIG_SUSFS|CONFIG_JUMP_LABEL" out/.config
+          # 删除可能关闭的项，然后强制写入
+          sed -i '/^CONFIG_KSU/d; /^CONFIG_SUSFS/d; /^CONFIG_JUMP_LABEL/d; /^CONFIG_LOCALVERSION_AUTO/d; /^CONFIG_SUKISU/d' out/.config
+
+          cat >> out/.config << 'EOF'
+          CONFIG_KSU=y
+          CONFIG_KSU_SUSFS=y
+          CONFIG_KSU_HOOK_RC=y
+          CONFIG_KSU_HOOK_INPUT=y
+          CONFIG_KSU_HOOK_PROCESS=y
+          CONFIG_KSU_HOOK_SCHED=y
+          CONFIG_SUSFS=y
+          CONFIG_SUSFS_HOOK_RC=y
+          CONFIG_SUSFS_HOOK_INPUT=y
+          CONFIG_JUMP_LABEL=y
+          CONFIG_LOCALVERSION_AUTO=n
+          CONFIG_SUKISU=y
+          EOF
+
+          # 再次运行 olddefconfig 解决可能的依赖（不会关闭我们刚加的键）
+          make ARCH=arm64 O=out olddefconfig
+
+          # ============================================
+          # 5. 确保 drivers/Makefile 包含 kernelsu 目录
+          # ============================================
+          if ! grep -q 'kernelsu/' drivers/Makefile; then
+            echo 'obj-y += kernelsu/' >> drivers/Makefile
+          fi
+
+          # ============================================
+          # 6. 再次暴力修改 drivers/kernelsu/Makefile
+          #    将所有 obj-$(CONFIG_xxx) 替换为 obj-y
+          # ============================================
+          echo "Force changing obj-\$(CONFIG...) to obj-y in kernelsu Makefiles..."
+          find drivers/kernelsu -name 'Makefile' -exec sed -i 's/obj-\$(CONFIG_KSU)/obj-y/g; s/obj-\$(CONFIG_KSU_SUSFS)/obj-y/g; s/obj-\$(CONFIG_SUKISU)/obj-y/g' {} +
+
+          # ============================================
+          # 7. 验证配置是否真的生效
+          # ============================================
+          echo ""
+          echo "=== Final .config KSU settings ==="
+          grep -E "CONFIG_KSU|CONFIG_SUSFS|CONFIG_JUMP_LABEL" out/.config || echo "WARNING: KSU configs not found!"
+          echo ""
+          echo "=== Check if kernelsu objects will be built ==="
+          grep -r "kernelsu" out/Makefile 2>/dev/null || true
+          echo ""
+          echo "Extra Kernel Options Done."
       - name: 🧰 Patch Kernel of Re:Kernel
         uses: ./.github/workflows/patch-rekernel
 
