@@ -43,8 +43,8 @@ env:
 
   BOOT_SOURCE : ""
 
-  HAVE_NO_DTBO : false
-  HAVE_NO_DTBO_TOOL : false
+  NEED_DTBO : true
+  NEED_SAFE_DTBO : true
 
   ROM_TEXT : "lineageos_23.0"
 
