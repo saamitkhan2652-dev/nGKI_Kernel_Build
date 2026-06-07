@@ -12,10 +12,10 @@ env:
   CUSTOM_CMDS : "CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- TARGET_PRODUCT=taoyao"
   EXTRA_CMDS : "LLVM=1 LLVM_IAS=1"
 
-  KERNEL_SOURCE : "https://github.com/cyberc3dr/android_kernel_ximi_taoyao.git"
-  KERNEL_BRANCH : "ximi-a16"
+  KERNEL_SOURCE : "https://github.com/cyberc3dr/android_kernel_xiaomi_sm8350.git"
+  KERNEL_BRANCH : "lineage-23.2"
 
-  CLANG_SOURCE : "https://github.com/cyberc3dr/clang_mirror/releases/download/clang-r383902b1/clang-r383902b1.tar.gz"
+  CLANG_SOURCE : "https://github.com/bachnxuan/aosp_clang_mirror/releases/download/clang-r563880c-13989888/clang-r563880c.tar.gz"
   CLANG_BRANCH : ""
 
   GCC_GNU : false
@@ -46,7 +46,7 @@ env:
   NEED_DTBO : true
   NEED_SAFE_DTBO : true
 
-  ROM_TEXT : "lineageos_23.0"
+  ROM_TEXT : "lineageos_23.2"
 
   # Other env
   PYTHON_VERSION: "3" # Only 2(Ubuntu 22.04 and Ubuntu 20.04) or 3(Any OS Versions).
@@ -84,8 +84,8 @@ env:
   BUILD_DEBUGGER: "false" # Output build errors.
   SKIP_PATCH: "false" # Ignore errors found in Patch Debugger.
 
-  BUILD_OTHER_CONFIG: "false" # Merge config files.
-  MERGE_CONFIG_FILES: "vendor/debugfs.config,vendor/taoyao_QGKI.config"
+  BUILD_OTHER_CONFIG: "true" # Merge config files.
+  MERGE_CONFIG_FILES: "vendor/debugfs.config,vendor/xiaomi_QGKI.config,vendor/taoyao_QGKI.config"
 
   FREE_MORE_SPACE: "false" # if u want get more space, enabled it.
 
