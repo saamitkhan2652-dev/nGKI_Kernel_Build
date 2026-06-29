@@ -5,7 +5,8 @@ permissions:
   actions: write
 
 on:
-  workflow_call:
+  workflow_dispatch:  # <-- This adds the manual "Run workflow" button!
+  workflow_call:      # <-- Keeps it callable by other scripts if needed
 
 jobs:
   # Xiaomi Miatoll
