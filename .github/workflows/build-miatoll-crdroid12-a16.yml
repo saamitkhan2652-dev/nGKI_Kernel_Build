@@ -17,7 +17,7 @@ jobs:
 
       - name: Clone Toolchain
         run: |
-          git clone --depth=1 -b master-kernel-build-2024 https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86 $GITHUB_WORKSPACE/clang
+          git clone --depth=1 -b main-kernel https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86 $GITHUB_WORKSPACE/clang
           echo "$GITHUB_WORKSPACE/clang/bin" >> $GITHUB_PATH
 
       - name: Clone Kernel Source
