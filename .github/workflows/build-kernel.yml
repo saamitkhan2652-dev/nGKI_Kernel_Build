@@ -8,12 +8,12 @@ on:
   workflow_call:
 
 jobs:
-  # Xiaomi
-  build-poco-x5-5g-lineageos23-a16:
-    name: "Build POCO X5 5G (LineageOS 23.2 A16)"
+  # Xiaomi Miatoll
+  build-miatoll-crdroid12-a16:
+    name: "Build Redmi Note 9S/9 Pro (crDroid 12.0 A16)"
     strategy:
       fail-fast: true
-    uses: ./.github/workflows/build-poco-x5-5g-lineageos23-a16.yml
+    uses: ./.github/workflows/build-miatoll-crdroid12-a16.yml
     secrets: inherit
 
   # Nothing
